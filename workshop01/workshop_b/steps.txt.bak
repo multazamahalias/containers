@@ -16,3 +16,9 @@ docker inspect {container id of northwind-db}
 
 # run in created network and set all env variables that are db related
 docker run -d -p 8080:3000 --network mynet -e DB_HOST=172.18.0.2 -e DB_USER=root -e DB_PASSWORD=changeit --name northwind-app stackupiss/northwind-app:v1
+
+
+
+
+
+at least 1.22
