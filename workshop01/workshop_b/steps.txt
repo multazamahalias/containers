@@ -1,0 +1,62 @@
+docker pull stackupiss/northwind-app:v1
+docker inspect {image id of northwind-app}
+"ExposedPorts": {
+	"3000/tcp": {}
+}
+"Env": [
+	"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+	"NODE_VERSION=11.9.0",
+	"YARN_VERSION=1.13.0",
+	"APP_PORT=3000",
+	"APP_DIR=/app"
+]
+
+
+docker pull stackupiss/northwind-db:v1
+docker inspect {image id of northwind-db}
+"ExposedPorts": {
+	"3306/tcp": {},
+	"33060/tcp": {}
+}
+"Env": [
+	"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+	"GOSU_VERSION=1.7",
+	"MYSQL_MAJOR=5.7",
+	"MYSQL_VERSION=5.7.24-1debian9",
+	"MYSQL_ROOT_PASSWORD=changeit",
+	"MYSQL_DATABASE=northwind"
+]
+
+
+
+
+docker network create mynet
+
+docker run -d --network mynet --name northwind-db stackupiss/northwind-db:v1
+docker inspect {container id of northwind-db}
+"Networks": {
+	"mynet": {
+		"IPAMConfig": null,
+		"Links": null,
+		"Aliases": [
+			"23d7af8a7e59"
+		],
+		"NetworkID": "d5d7a8eac726d339ac4cc82a40b00c911bba14f4dc4877c97bf351b5871eaab8",
+		"EndpointID": "f47d4645d8f89d82e01e0f94d9264178d8285aa2f439647029525e9d98bb7c5d",
+		"Gateway": "172.18.0.1",
+		"IPAddress": "172.18.0.2",
+		"IPPrefixLen": 16,
+		"IPv6Gateway": "",
+		"GlobalIPv6Address": "",
+		"GlobalIPv6PrefixLen": 0,
+		"MacAddress": "02:42:ac:12:00:02",
+		"DriverOpts": null
+	}
+}
+
+
+
+docker run -d -p 8080:3000 --network mynet -e DB_HOST=localhost/3306 -e DB_USER=root -e DB_PASSWORD=changeit --name northwind-app stackupiss/northwind-app:v1
+
+
+at least 1.22
