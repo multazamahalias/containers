@@ -1,0 +1,196 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app1-deploy
+  labels:
+    name: app1-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: app1-po
+  template:
+    metadata:
+      name: app1-po
+      labels:
+        name: app1-po
+    spec:
+      containers:
+        - name: app1
+          image: stackupiss/bgg-backend:v1
+          imagePullPolicy: IfNotPresent
+          args:
+          - --prefix
+          - /v1
+          envFrom:
+            - configMapRef:
+                name: bgg-cm
+            - secretRef:
+                name: bgg-secret
+          ports:
+          - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /v1/healthz
+              port: 3000
+          readinessProbe:
+            httpGet:
+              path: /v1/healthz
+              port: 3000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app1-svc
+  labels:
+    name: app1-svc
+spec:
+  type: ClusterIP
+  selector:
+    name: app1-po
+  ports:
+  - port: 80
+    targetPort: 3000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2-deploy
+  labels:
+    name: app2-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: app2-po
+  template:
+    metadata:
+      name: app2-po
+      labels:
+        name: app2-po
+    spec:
+      containers:
+        - name: app2
+          image: stackupiss/bgg-backend:v2
+          imagePullPolicy: IfNotPresent
+          args:
+          - --prefix
+          - /v2
+          envFrom:
+            - configMapRef:
+                name: bgg-cm
+            - secretRef:
+                name: bgg-secret
+          ports:
+          - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /v2/healthz
+              port: 3000
+          readinessProbe:
+            httpGet:
+              path: /v2/healthz
+              port: 3000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app2-svc
+  labels:
+    name: app2-svc
+spec:
+  type: ClusterIP
+  selector:
+    name: app2-po
+  ports:
+  - port: 80
+    targetPort: 3000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bgg-ing
+  labels:
+    name: bgg-ing
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: bgg-104.248.99.43.nip.io
+    http:
+      paths:
+      - path: /v1
+        pathType: Prefix
+        backend:
+          service:
+            name: app1-svc
+            port:
+              number: 3000
+      - path: /v2
+        pathType: Prefix
+        backend:
+          service:
+            name: app2-svc
+            port:
+              number: 3000
+  defaultBackend:
+    service:
+      name: fortune-svc
+      port:
+        number: 3000
+
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bgg1-hpa
+  labels:
+    name: bgg1-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app1-deploy
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bgg2-hpa
+  labels:
+    name: bgg2-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app2-deploy
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
