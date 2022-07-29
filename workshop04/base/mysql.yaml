@@ -1,0 +1,73 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-svc
+  labels:
+    name: mysql-svc
+spec:
+  type: ClusterIP
+  selector:
+    name: mysql-po
+  ports:
+  - port: 3306
+    targetPort: 3306
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-hsvc
+  labels:
+    name: mysql-hsvc
+spec:
+  clusterIP: None
+  selector:
+    name: mysql-po
+  ports:
+  - port: 3306
+    targetPort: 3306
+  
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-sts
+  labels:
+    name: mysql-sts
+spec:
+  replicas: 1
+  serviceName: mysql-hsvc
+  selector:
+    matchLabels:
+      name: mysql-po
+  volumeClaimTemplates:
+  - metadata:
+      name: mysql-pvc
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: do-block-storage
+  template:
+    metadata:
+      name: mysql-po
+      labels:
+        name: mysql-po
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: wp-cm
+        - secretRef:
+            name: wp-secret
+        volumeMounts:
+        - name: mysql-pvc
+          mountPath: /var/lib/mysql
+        ports:
+        - containerPort: 3306

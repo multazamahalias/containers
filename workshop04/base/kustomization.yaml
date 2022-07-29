@@ -1,0 +1,42 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- mysql.yaml
+- wordpress.yaml
+- netpol.yaml
+
+configMapGenerator:
+- name: wp-cm
+  behavior: create
+  literals:
+  - MYSQL_DATABASE=wordpress
+  - MYSQL_USER=fred
+
+secretGenerator:
+- name: wp-secret
+  behavior: create
+  literals:
+  - MYSQL_ROOT_PASSWORD=rootroot
+  - MYSQL_PASSWORD=changeit
+
+replacements:
+- source:
+    kind: Service
+    name: mysql-svc
+    fieldPath: metadata.name
+  targets:
+  - select:
+      kind: StatefulSet
+      name: wp-sts
+    fieldPaths:
+    - spec.template.spec.containers.[name=wp].env.[name=WORDPRESS_DB_HOST].value
+
+patches:
+- path: ./fqdn.yaml
+  target:
+    group: networking.k8s.io
+    version: v1
+    kind: Ingress
+    name: wp-ing

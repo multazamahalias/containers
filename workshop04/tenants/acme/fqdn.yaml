@@ -1,0 +1,3 @@
+- op: replace
+  path: /spec/rules/0/host
+  value: acme-104.248.99.43.nip.io
